@@ -151,7 +151,7 @@ SQL
 cmd_config_get() {
   local cfg
   cfg="$(read_config)"
-  printf '%s' "$cfg" | jq -c '{ok: true, mode: .mode, allow: .allow}'
+  printf '%s' "$cfg" | jq -c '{ok: true, mode: .mode, allow: .allow, hideMuted: .hideMuted}'
   exit 0
 }
 
@@ -164,6 +164,18 @@ cmd_set_mode() {
   cfg="$(read_config | jq -c --arg m "$mode" '.mode = $m')" || emit_error "could not update config"
   write_config "$cfg" || emit_error "cannot write $(config_path)"
   emit_ok --arg mode "$mode"
+}
+
+cmd_set_hide_muted() {
+  local value="${1-}" cfg
+  case "$value" in
+    true | false) ;;
+    *) emit_error "invalid hide-muted value: expected true or false" ;;
+  esac
+  cfg="$(read_config | jq -c --argjson v "$value" '.hideMuted = $v')" \
+    || emit_error "could not update config"
+  write_config "$cfg" || emit_error "cannot write $(config_path)"
+  emit_ok --argjson hideMuted "$value"
 }
 
 cmd_set_allow() {
@@ -772,6 +784,7 @@ assert_config_safe
 case "${1-}" in
   config-get)      shift; cmd_config_get "$@" ;;
   set-mode)        shift; cmd_set_mode "$@" ;;
+  set-hide-muted)  shift; cmd_set_hide_muted "$@" ;;
   set-allow)       shift; cmd_set_allow "$@" ;;
   mark-seen)       shift; cmd_mark_seen "$@" ;;
   send)            shift; cmd_send "$@" ;;

@@ -81,6 +81,8 @@ Open the panel and click the gear icon (⚙️) for:
 
 - **Who may notify me** — everyone, nobody (paused), or a hand-picked list of
   chats
+- **Hide muted chats** — suppress chats while their WhatsApp mute is active;
+  timed mutes appear again automatically when they expire
 - **What the bar shows** — icon only, count only, sender + count (default),
   or sender + a preview of the message itself if you'd rather see it at a
   glance ("nothing to hide" mode)

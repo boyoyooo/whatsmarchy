@@ -64,6 +64,7 @@ Panel {
   property var    mediaPaths: ({})
   property string busyKey: ""
   property var    allowList: []
+  property bool   hideMuted: false
   // Marking read for real (see mark_read_remote in wa-ctl.sh) briefly stops
   // and restarts the sync service — a few seconds, not instant. This gates
   // an overlay so a click elsewhere mid-flight can't race it.
@@ -251,7 +252,10 @@ Panel {
       onStreamFinished: {
         try {
           var p = JSON.parse(this.text)
-          if (p && p.ok === true && Array.isArray(p.allow)) root.allowList = p.allow
+          if (p && p.ok === true) {
+            if (Array.isArray(p.allow)) root.allowList = p.allow
+            root.hideMuted = p.hideMuted === true
+          }
         } catch (e) { /* leave the previous list rather than blanking it */ }
       }
     }
@@ -330,6 +334,15 @@ Panel {
   function setMode(newMode) {
     runAction(["set-mode", newMode], function () {
       if (root.hostWidget) root.hostWidget.refresh()
+    })
+  }
+
+  function setHideMuted(value) {
+    runAction(["set-hide-muted", value ? "true" : "false"], function (payload) {
+      if (payload && payload.ok === true) {
+        root.hideMuted = payload.hideMuted === true
+        if (root.hostWidget) root.hostWidget.refresh()
+      }
     })
   }
 
@@ -963,6 +976,45 @@ Panel {
             accent: root.accentColor
             fontFamily: root.bar ? root.bar.fontFamily : Style.font.family
             onChanged: function (values) { root.saveAllow(values) }
+          }
+
+          PanelSeparator { width: parent.width; foreground: root.barForeground; strength: 0.08 }
+          PanelSectionHeader {
+            width: parent.width
+            horizontalAlignment: Text.AlignHCenter
+            text: "HIDE MUTED CHATS"
+            foreground: root.barForeground
+          }
+
+          Row {
+            anchors.horizontalCenter: parent.horizontalCenter
+            spacing: Style.space(6)
+            Repeater {
+              model: [
+                { value: true,  label: "YES" },
+                { value: false, label: "NO" }
+              ]
+              delegate: Button {
+                required property var modelData
+                text: modelData.label
+                bordered: true
+                selected: root.hideMuted === modelData.value
+                foreground: root.barForeground
+                accent: root.accentColor
+                fontFamily: root.bar ? root.bar.fontFamily : Style.font.family
+                fontSize: Style.font.bodySmall
+                onClicked: root.setHideMuted(modelData.value)
+              }
+            }
+          }
+
+          Text {
+            width: parent.width
+            text: "Don't show new messages from chats currently muted in WhatsApp."
+            textFormat: Text.PlainText
+            color: Util.alpha(root.barForeground, 0.6)
+            wrapMode: Text.WordWrap
+            font.pixelSize: Style.font.caption
           }
 
           PanelSeparator { width: parent.width; foreground: root.barForeground; strength: 0.08 }

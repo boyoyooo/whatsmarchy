@@ -112,6 +112,7 @@ SELECT COALESCE(json_group_array(json_object(
   'mime',      mime,
   'filename',  fname,
   'localPath', lpath,
+  'mutedUntil', muted_until,
   'chatUnread', chat_unread
 )), '[]')
 FROM (
@@ -136,6 +137,7 @@ FROM (
     substr(COALESCE(NULLIF(g.name,''), NULLIF(NULLIF(c.name,''), m.chat_jid), NULLIF(cc.push_name,''),
              NULLIF(cc.full_name,''), NULLIF(cc.business_name,''), m.chat_jid), 1, $SQL_NAME_MAX) AS chat_name,
     c.kind AS kind,
+    c.muted_until AS muted_until,
     c.unread AS chat_unread
   FROM messages m
   JOIN chats c        ON c.jid  = m.chat_jid
@@ -205,6 +207,7 @@ printf '%s' "$rows" | jq -c \
   | ($cfg.seenAll) as $seenAll
   | ($cfg.seen)  as $seen
   | ($cfg.mode)  as $mode
+  | ($cfg.hideMuted) as $hideMuted
   | ($cfg.allow | map({key: ., value: true}) | from_entries) as $allowSet
   # Per-chat watermark: the chat has its own timestamp once it has been
   # acknowledged, otherwise the global one set on first run.
@@ -220,6 +223,12 @@ printf '%s' "$rows" | jq -c \
   # time throughout extensive testing; chatUnread has not.
   | map(select(.ts > ($seen[.chatJid] // $seenAll)))
   | map(select($mode == "all" or ($allowSet[.chatJid] // false)))
+  # muted_until is 0 when audible, -1 for an indefinite mute, or the expiry
+  # timestamp for a timed mute. Comparing against now makes expired chats
+  # reappear without requiring a config change or rescan.
+  | map(select(($hideMuted | not)
+               or (.mutedUntil == 0)
+               or (.mutedUntil > 0 and .mutedUntil <= now)))
   | group_by(.chatJid)
   | map(
       (. | sort_by(.ts)) as $msgs
