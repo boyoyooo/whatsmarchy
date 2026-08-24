@@ -54,6 +54,7 @@ resolve_store_dir() {
 # Shape:
 #   { "mode": "paused|all|custom",
 #     "allow": ["<jid>", ...],
+#     "hideMuted": false,
 #     "seen":  { "<jid>": <unix seconds> },
 #     "seenAll": <unix seconds> }
 
@@ -61,7 +62,7 @@ config_path() {
   printf '%s' "${WHATSMARCHY_CONFIG:-$HOME/.config/omarchy/whatsmarchy/config.json}"
 }
 
-config_defaults='{"mode":"all","allow":[],"seen":{},"seenAll":0}'
+config_defaults='{"mode":"all","allow":[],"hideMuted":false,"seen":{},"seenAll":0}'
 
 # --- size caps ----------------------------------------------------------
 # Everything below ultimately comes from either a hand-editable config file
@@ -248,6 +249,7 @@ read_config() {
         mode:    (if ($c.mode | type) == "string" and (["paused","all","custom"] | index($c.mode)) != null
                   then $c.mode else $d.mode end),
         allow:   (if ($c.allow | type) == "array" then [$c.allow[] | select(type == "string")] else [] end),
+        hideMuted: (if ($c.hideMuted | type) == "boolean" then $c.hideMuted else false end),
         seen:    (if ($c.seen | type) == "object" then ($c.seen | with_entries(select(.value | type == "number"))) else {} end),
         seenAll: (if ($c.seenAll | type) == "number" then $c.seenAll else 0 end)
       }
