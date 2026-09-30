@@ -152,8 +152,14 @@ Panel {
   }
 
   // Keeps "2 min ago" honest while the panel sits open between polls.
+  //
+  // triggeredOnStart matters: without it the timer only fires a full interval
+  // after the panel opens, so the label keeps the frozen age it was showing
+  // when the panel was last open — open it in the morning after it sat closed
+  // overnight and it reads "2h" until that first tick lands. The immediate
+  // fire re-evaluates every label against the current clock at open.
   property int nowTick: 0
-  Timer { interval: 20000; running: root.opened; repeat: true; onTriggered: root.nowTick++ }
+  Timer { interval: 20000; running: root.opened; repeat: true; triggeredOnStart: true; onTriggered: root.nowTick++ }
 
   function agoText(epoch) {
     root.nowTick // dependency: re-evaluate on each tick
